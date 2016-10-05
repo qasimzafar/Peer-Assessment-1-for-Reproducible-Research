@@ -1,0 +1,98 @@
+---
+title: 'Peer-graded Assignment: Course Project 1'
+author: "Fabien Le Thuaut"
+date: "5 October 2016"
+output: pdf_document
+---
+
+#LOADING AND PREPROCESSING DATA
+unzip data into a CSV
+```{r unzip}
+unzip("Activity monitoring data.zip")
+
+activity <- read.csv("activity.csv")
+
+activityday <-aggregate(steps ~ date, data=activity, sum, na.rm = TRUE)
+
+```
+
+##MEAN NUMBER OF STEPS TAKEN PER DAY
+the data is then aggregated to calculate the mean number of steps per day
+```{r agg}
+activityday <-aggregate(steps ~ date, data=activity, sum, na.rm = TRUE)
+```
+
+The plot is then generated
+```{r hist, echo=FALSE}
+hist(activityday$steps, main = "Histogram of Steps", xlab = "Steps per Day")
+
+```
+
+mean value is:
+```{r mean}
+mean(activityday$steps)
+```
+
+media value is:
+```{r median} 
+median(activityday$steps)
+```
+
+##AVERAGE DAILY ACTIVITY PATTERN
+Get mean data by using the aggregate function on intervals
+```{r mean} 
+activitystepmean <- aggregate(steps ~ interval, data=activity, mean, na.rm=TRUE)
+```
+
+and plot is to get a timeseries
+```{r ts, echo=FALSE}
+plot(activitystepmean$interval,activitystepmean$steps, type = "l", xlab = "interval", ylab = "steps")
+```
+
+the max number of steps is
+```{r max} 
+maxsteps <- max(activitystepmean$steps)
+maxstepsinterval <- activitystepmean[activitystepmean$steps==maxsteps,1]
+```
+
+##IMPUTING MISSING VALUES
+My strategy is to apply interval mean to NA values. I do this using the following code:
+```{r Nas} 
+activitynew<- activity
+activityna<- is.na(activitynew$steps)
+avg_interval<- tapply(activitynew$steps, activitynew$interval, mean, na.rm=TRUE, simplify = TRUE)
+activitynew$steps[nas] <- avg_interval[as.character(activitynew$interval[activityna])]
+
+activitynewday <- aggregate(steps ~ date, data=activitynew, sum, na.rm = TRUE)
+```
+
+I am then able to output the following graph. Similar to the first histogram but without the NA values
+```{r hist2, echo=FALSE}
+hist(activitynewday$steps, main = "Histogram of Steps", xlab = "Steps per Day")
+```
+
+I then recalculate the mean and median values:
+```{r meanmedian} 
+mean(activitynewday$steps)
+median(activitynewday$steps)
+```
+
+##DIFFERENCES IN ACTIVITY PATTERNS BETWEEN WEEKDAY AND WEEKENDS
+```{r weekday/end} 
+I then classify each row as Weekday or Weekend using the date column with the following code:
+activity3 <- cbind(activitynew,weekdays(as.Date(activitynew$date)))
+names(activity3)[4] <- "DayOfWeek"
+
+weekdays <- subset(activity3,as.character(activity3[DayOfWeek]) %in% c("Monday","Tuesday","Wednesday","Thursday","Friday"))
+weekends <- subset(activity3,activity3$DayOfWeek %in% c("Saturday","Sunday"))
+
+weekdayint<-aggregate(steps ~ interval, data=weekdays, mean, na.rm=TRUE)
+weekendint<-aggregate(steps ~ interval, data=weekends, mean, na.rm=TRUE)
+```
+
+and lastly output a pannel plot:
+```{r hist2, echo=FALSE}
+par(mfrow=c(2,1))
+plot(weekdayint$interval,weekdayint$steps, type = "l", xlab = "interval", ylab = "steps",main = "Weekdays")
+plot(weekendint$interval,weekendint$steps, type = "l", xlab = "interval", ylab = "steps",main = "Weekends")
+```
